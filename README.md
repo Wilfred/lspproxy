@@ -20,28 +20,35 @@ The binary will be available at `target/release/lsp-proxy`.
 ## Usage
 
 ```bash
-lsp-proxy --lsp-server <LSP_SERVER> [OPTIONS] [SERVER_ARGS]...
+LSP_SERVER=<path> lsp-proxy [LSP_ARGS]...
 ```
 
-### Options
+### Environment Variables
 
-- `-s, --lsp-server <LSP_SERVER>` - Path to the LSP server executable (or set `LSP_SERVER` env var)
-- `-l, --log-dir <LOG_DIR>` - Directory for log files (default: current directory)
-- `-j, --json-lines` - Log as JSON Lines instead of raw JSON-RPC format
-- `[SERVER_ARGS]...` - Arguments to pass through to the LSP server
+- `LSP_SERVER` - Path to the LSP server executable (required)
+- `LSP_LOG_DIR` - Directory to write log files (default: `/tmp/lsp-proxy`)
+- `LSP_JSON_LINES` - Set to `1` or `true` for JSON Lines logging mode
+
+All command-line arguments are passed directly to the LSP server.
 
 ### Examples
 
 Proxy rust-analyzer with JSON Lines logging:
 
 ```bash
-lsp-proxy --lsp-server rust-analyzer --json-lines --log-dir ./lsp-logs
+LSP_SERVER=rust-analyzer LSP_JSON_LINES=1 LSP_LOG_DIR=./lsp-logs lsp-proxy
 ```
 
-Proxy with server arguments:
+Proxy typescript-language-server with arguments:
 
 ```bash
-lsp-proxy -s typescript-language-server -l ./logs -- --stdio
+LSP_SERVER=typescript-language-server lsp-proxy --stdio
+```
+
+Proxy with custom log directory:
+
+```bash
+LSP_SERVER=/usr/bin/clangd LSP_LOG_DIR=/var/log/lsp lsp-proxy
 ```
 
 ## Log Files
