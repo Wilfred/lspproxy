@@ -1,11 +1,11 @@
 use anyhow::{Context, Result};
-use clap::Parser;
 use chrono::Local;
+use clap::Parser;
 use std::path::PathBuf;
 use std::process::Stdio;
+use tokio::fs::OpenOptions;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
-use tokio::fs::OpenOptions;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about = "LSP Proxy - Logs and proxies LSP server communication", long_about = None)]
@@ -34,9 +34,7 @@ struct LspMessageParser {
 
 impl LspMessageParser {
     fn new() -> Self {
-        Self {
-            buffer: Vec::new(),
-        }
+        Self { buffer: Vec::new() }
     }
 
     /// Add data to the buffer and try to extract complete messages
@@ -74,9 +72,7 @@ impl LspMessageParser {
     }
 
     fn find_header_end(&self) -> Option<usize> {
-        self.buffer
-            .windows(4)
-            .position(|w| w == b"\r\n\r\n")
+        self.buffer.windows(4).position(|w| w == b"\r\n\r\n")
     }
 
     fn parse_content_length(&self, headers: &str) -> Option<usize> {
@@ -101,8 +97,12 @@ async fn main() -> Result<()> {
     // Create log file paths with timestamp
     let timestamp = Local::now().format("%Y%m%d_%H%M%S");
     let suffix = if args.json_lines { "jsonl" } else { "log" };
-    let stdin_log_path = args.log_dir.join(format!("lsp_stdin_{}.{}", timestamp, suffix));
-    let stdout_log_path = args.log_dir.join(format!("lsp_stdout_{}.{}", timestamp, suffix));
+    let stdin_log_path = args
+        .log_dir
+        .join(format!("lsp_stdin_{}.{}", timestamp, suffix));
+    let stdout_log_path = args
+        .log_dir
+        .join(format!("lsp_stdout_{}.{}", timestamp, suffix));
     let stderr_log_path = args.log_dir.join(format!("lsp_stderr_{}.log", timestamp));
 
     eprintln!("LSP Proxy starting...");
@@ -248,7 +248,8 @@ async fn main() -> Result<()> {
                                     // Write as compact JSON line
                                     if let Ok(compact) = serde_json::to_string(&value) {
                                         let line = format!("{}\n", compact);
-                                        if let Err(e) = stdout_log.write_all(line.as_bytes()).await {
+                                        if let Err(e) = stdout_log.write_all(line.as_bytes()).await
+                                        {
                                             eprintln!("Failed to write to stdout log: {}", e);
                                         }
                                     }
