@@ -20,7 +20,7 @@ fn print_help() {
     println!();
     println!("ENVIRONMENT VARIABLES:");
     println!("    LSP_SERVER       Path to the LSP server executable (required)");
-    println!("    LSP_LOG_DIR      Directory to write log files (defaults to current directory)");
+    println!("    LSP_LOG_DIR      Directory to write log files (defaults to /tmp/lsp-proxy)");
     println!("    LSP_JSON_LINES   Set to '1' or 'true' for JSON lines logging mode");
     println!();
     println!("OPTIONS:");
@@ -116,7 +116,7 @@ async fn main() -> Result<()> {
     let lsp_server =
         env::var("LSP_SERVER").context("LSP_SERVER environment variable must be set")?;
 
-    let log_dir = env::var("LSP_LOG_DIR").unwrap_or_else(|_| ".".to_string());
+    let log_dir = env::var("LSP_LOG_DIR").unwrap_or_else(|_| "/tmp/lsp-proxy".to_string());
     let log_dir = PathBuf::from(log_dir);
 
     let json_lines = env::var("LSP_JSON_LINES")
