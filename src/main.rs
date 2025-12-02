@@ -1,30 +1,37 @@
 use anyhow::{Context, Result};
 use chrono::Local;
-use clap::Parser;
+use std::env;
 use std::path::PathBuf;
 use std::process::Stdio;
 use tokio::fs::OpenOptions;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 
-#[derive(Parser, Debug)]
-#[command(author, version, about = "LSP Proxy - Logs and proxies LSP server communication", long_about = None)]
-struct Args {
-    /// Path to the LSP server executable
-    #[arg(short = 's', long, env = "LSP_SERVER")]
-    lsp_server: String,
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+const NAME: &str = env!("CARGO_PKG_NAME");
 
-    /// Arguments to pass to the LSP server
-    #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
-    server_args: Vec<String>,
+fn print_help() {
+    println!("{} {}", NAME, VERSION);
+    println!();
+    println!("LSP Proxy - Logs and proxies LSP server communication");
+    println!();
+    println!("USAGE:");
+    println!("    {} [OPTIONS] [-- [LSP_ARGS]...]", NAME);
+    println!();
+    println!("ENVIRONMENT VARIABLES:");
+    println!("    LSP_SERVER       Path to the LSP server executable (required)");
+    println!("    LSP_LOG_DIR      Directory to write log files (defaults to /tmp/lsp-proxy)");
+    println!("    LSP_JSON_LINES   Set to '1' or 'true' for JSON lines logging mode");
+    println!();
+    println!("OPTIONS:");
+    println!("    --help       Print help information");
+    println!("    --version    Print version information");
+    println!();
+    println!("All other arguments are passed directly to the LSP server.");
+}
 
-    /// Directory to write log files (defaults to current directory)
-    #[arg(short = 'l', long, default_value = ".")]
-    log_dir: PathBuf,
-
-    /// Log as JSON lines (one JSON object per line) instead of raw JSON-RPC format
-    #[arg(short = 'j', long)]
-    json_lines: bool,
+fn print_version() {
+    println!("{} {}", NAME, VERSION);
 }
 
 /// Parses LSP messages from a buffer and extracts JSON payloads
@@ -87,27 +94,53 @@ impl LspMessageParser {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let args = Args::parse();
+    // Collect command-line arguments
+    let args: Vec<String> = env::args().collect();
+
+    // Check for --help or --version
+    if args.len() > 1 {
+        match args[1].as_str() {
+            "--help" => {
+                print_help();
+                std::process::exit(0);
+            }
+            "--version" => {
+                print_version();
+                std::process::exit(0);
+            }
+            _ => {}
+        }
+    }
+
+    // Get configuration from environment variables
+    let lsp_server =
+        env::var("LSP_SERVER").context("LSP_SERVER environment variable must be set")?;
+
+    let log_dir = env::var("LSP_LOG_DIR").unwrap_or_else(|_| "/tmp/lsp-proxy".to_string());
+    let log_dir = PathBuf::from(log_dir);
+
+    let json_lines = env::var("LSP_JSON_LINES")
+        .map(|v| v == "1" || v.to_lowercase() == "true")
+        .unwrap_or(false);
+
+    // All arguments (except the program name) are passed to the LSP server
+    let server_args: Vec<String> = args.into_iter().skip(1).collect();
 
     // Create log directory if it doesn't exist
-    tokio::fs::create_dir_all(&args.log_dir)
+    tokio::fs::create_dir_all(&log_dir)
         .await
         .context("Failed to create log directory")?;
 
     // Create log file paths with timestamp
     let timestamp = Local::now().format("%Y%m%d_%H%M%S");
-    let suffix = if args.json_lines { "jsonl" } else { "log" };
-    let stdin_log_path = args
-        .log_dir
-        .join(format!("lsp_stdin_{}.{}", timestamp, suffix));
-    let stdout_log_path = args
-        .log_dir
-        .join(format!("lsp_stdout_{}.{}", timestamp, suffix));
-    let stderr_log_path = args.log_dir.join(format!("lsp_stderr_{}.log", timestamp));
+    let suffix = if json_lines { "jsonl" } else { "log" };
+    let stdin_log_path = log_dir.join(format!("lsp_stdin_{}.{}", timestamp, suffix));
+    let stdout_log_path = log_dir.join(format!("lsp_stdout_{}.{}", timestamp, suffix));
+    let stderr_log_path = log_dir.join(format!("lsp_stderr_{}.log", timestamp));
 
     eprintln!("LSP Proxy starting...");
-    eprintln!("LSP Server: {} {:?}", args.lsp_server, args.server_args);
-    eprintln!("JSON Lines mode: {}", args.json_lines);
+    eprintln!("LSP Server: {} {:?}", lsp_server, server_args);
+    eprintln!("JSON Lines mode: {}", json_lines);
     eprintln!("Logging to:");
     eprintln!("  stdin:  {}", stdin_log_path.display());
     eprintln!("  stdout: {}", stdout_log_path.display());
@@ -136,8 +169,8 @@ async fn main() -> Result<()> {
         .context("Failed to create stderr log file")?;
 
     // Spawn the LSP server process
-    let mut child = Command::new(&args.lsp_server)
-        .args(&args.server_args)
+    let mut child = Command::new(&lsp_server)
+        .args(&server_args)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -151,7 +184,7 @@ async fn main() -> Result<()> {
     let mut proxy_stdin = tokio::io::stdin();
     let mut proxy_stdout = tokio::io::stdout();
 
-    let json_lines_mode = args.json_lines;
+    let json_lines_mode = json_lines;
 
     // Task 1: Proxy stdin from editor to LSP server (with logging)
     let stdin_task = tokio::spawn(async move {
