@@ -182,9 +182,9 @@ async fn main() -> Result<()> {
     // Create log file paths with timestamp
     let timestamp = Local::now().format("%Y%m%d_%H%M%S");
     let suffix = if json_lines { "jsonl" } else { "log" };
-    let stdin_log_path = log_dir.join(format!("lsp_stdin_{}.{}", timestamp, suffix));
-    let stdout_log_path = log_dir.join(format!("lsp_stdout_{}.{}", timestamp, suffix));
-    let stderr_log_path = log_dir.join(format!("lsp_stderr_{}.log", timestamp));
+    let stdin_log_path = log_dir.join(format!("{}_lsp_stdin.{}", timestamp, suffix));
+    let stdout_log_path = log_dir.join(format!("{}_lsp_stdout.{}", timestamp, suffix));
+    let stderr_log_path = log_dir.join(format!("{}_lsp_stderr.log", timestamp));
 
     eprintln!("LSP Proxy starting...");
     eprintln!("LSP Server: {} {:?}", lsp_server, server_args);
