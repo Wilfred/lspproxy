@@ -42,13 +42,18 @@ fn format_lsp_message(json: &str) -> String {
 
 /// Prints a minimal LSP session (initialize + shutdown) to stdout
 fn print_minimal_session() {
+    // Get current working directory and convert to file URI
+    let root_uri = env::current_dir()
+        .ok()
+        .and_then(|path| path.to_str().map(|s| format!("file://{}", s)));
+
     let initialize = serde_json::json!({
         "jsonrpc": "2.0",
         "id": 1,
         "method": "initialize",
         "params": {
             "processId": null,
-            "rootUri": null,
+            "rootUri": root_uri,
             "capabilities": {}
         }
     });
