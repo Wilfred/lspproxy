@@ -24,14 +24,47 @@ fn print_help() {
     println!("    LSP_JSON_LINES   Set to '1' or 'true' for JSON lines logging mode");
     println!();
     println!("OPTIONS:");
-    println!("    --help       Print help information");
-    println!("    --version    Print version information");
+    println!("    --help              Print help information");
+    println!("    --version           Print version information");
+    println!("    --minimal-session   Send initialize and shutdown requests to stdout");
     println!();
     println!("All other arguments are passed directly to the LSP server.");
 }
 
 fn print_version() {
     println!("{} {}", NAME, VERSION);
+}
+
+/// Formats a JSON message as an LSP message with Content-Length header
+fn format_lsp_message(json: &str) -> String {
+    format!("Content-Length: {}\r\n\r\n{}", json.len(), json)
+}
+
+/// Prints a minimal LSP session (initialize + shutdown) to stdout
+fn print_minimal_session() {
+    let initialize = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {
+            "processId": null,
+            "rootUri": null,
+            "capabilities": {}
+        }
+    });
+
+    let shutdown = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "shutdown",
+        "params": null
+    });
+
+    let initialize_str = serde_json::to_string(&initialize).unwrap();
+    let shutdown_str = serde_json::to_string(&shutdown).unwrap();
+
+    print!("{}", format_lsp_message(&initialize_str));
+    print!("{}", format_lsp_message(&shutdown_str));
 }
 
 /// Parses LSP messages from a buffer and extracts JSON payloads
@@ -97,7 +130,7 @@ async fn main() -> Result<()> {
     // Collect command-line arguments
     let args: Vec<String> = env::args().collect();
 
-    // Check for --help or --version
+    // Check for --help, --version, or --minimal-session
     if args.len() > 1 {
         match args[1].as_str() {
             "--help" => {
@@ -106,6 +139,10 @@ async fn main() -> Result<()> {
             }
             "--version" => {
                 print_version();
+                std::process::exit(0);
+            }
+            "--minimal-session" => {
+                print_minimal_session();
                 std::process::exit(0);
             }
             _ => {}
