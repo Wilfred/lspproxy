@@ -3,6 +3,8 @@ use chrono::Local;
 use std::env;
 use std::path::PathBuf;
 use std::process::Stdio;
+use std::thread;
+use std::time::Duration;
 use tokio::fs::OpenOptions;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
@@ -69,6 +71,10 @@ fn print_minimal_session() {
     let shutdown_str = serde_json::to_string(&shutdown).unwrap();
 
     print!("{}", format_lsp_message(&initialize_str));
+
+    // Sleep for 3 seconds before sending shutdown
+    thread::sleep(Duration::from_secs(3));
+
     print!("{}", format_lsp_message(&shutdown_str));
 }
 
