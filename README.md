@@ -1,21 +1,7 @@
 # lsp-proxy
 
-A transparent proxy for Language Server Protocol (LSP) servers that logs all traffic between your editor and the LSP server.
-
-## Features
-
-- **Transparent proxying**: Sits between your editor and LSP server, forwarding all communication
-- **Complete logging**: Captures stdin, stdout, and stderr to timestamped log files
-- **JSON Lines mode**: Optionally logs LSP messages as JSON Lines (`.jsonl`) for easier parsing
-- **Raw mode**: Logs complete JSON-RPC messages including headers for debugging protocol issues
-
-## Installation
-
-```bash
-cargo build --release
-```
-
-The binary will be available at `target/release/lsp-proxy`.
+A transparent proxy for Language Server Protocol (LSP) servers that
+logs all traffic between your editor and the LSP server.
 
 ## Usage
 
@@ -31,7 +17,8 @@ LSP_SERVER=<path> lsp-proxy [LSP_ARGS]...
 lsp-proxy --minimal-session
 ```
 
-Outputs an LSP initialize request followed by a shutdown request to stdout, suitable for piping directly into an LSP server for testing.
+Outputs an LSP initialize request followed by a shutdown request to
+stdout, suitable for piping directly into an LSP server for testing.
 
 ### Environment Variables
 
@@ -55,27 +42,11 @@ Proxy typescript-language-server with arguments:
 LSP_SERVER=typescript-language-server lsp-proxy --stdio
 ```
 
-Proxy with custom log directory:
-
-```bash
-LSP_SERVER=/usr/bin/clangd LSP_LOG_DIR=/var/log/lsp lsp-proxy
-```
-
 Test an LSP server with a minimal session:
 
 ```bash
 lsp-proxy --minimal-session | rust-analyzer
 ```
-
-## Log Files
-
-Log files are created with timestamps in the format `YYYY_MM_DD_T_HH_MM_SS`:
-
-- `<timestamp>_lsp_stdin.jsonl` - Messages from editor to server (JSON Lines mode)
-- `<timestamp>_lsp_stdout.jsonl` - Messages from server to editor (JSON Lines mode)
-- `<timestamp>_lsp_stdin.log` - Raw messages from editor (raw mode)
-- `<timestamp>_lsp_stdout.log` - Raw messages from server (raw mode)
-- `<timestamp>_lsp_stderr.log` - Diagnostic output from the LSP server
 
 ## Use Cases
 
