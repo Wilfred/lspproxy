@@ -69,7 +69,7 @@ lsp-proxy --minimal-session | rust-analyzer
 
 ## Log Files
 
-Log files are created with timestamps in the format `YYYYMMDD_HHMMSS`:
+Log files are created with timestamps in the format `YYYYMMDD_HH_MM_SS`:
 
 - `<timestamp>_lsp_stdin.jsonl` - Messages from editor to server (JSON Lines mode)
 - `<timestamp>_lsp_stdout.jsonl` - Messages from server to editor (JSON Lines mode)
