@@ -149,11 +149,11 @@ async fn run_proxy(lsp_server: String, server_args: Vec<String>) -> Result<()> {
         .context("Failed to create log directory")?;
 
     // Create log file paths with timestamp
-    let timestamp = Local::now().format("%Y_%m_%d_T_%H_%M_%S");
+    let timestamp = Local::now().format("%Y_%m_%d__%H_%M_%S");
     let suffix = if json_lines { "jsonl" } else { "log" };
-    let stdin_log_path = log_dir.join(format!("{}_lsp_stdin.{}", timestamp, suffix));
-    let stdout_log_path = log_dir.join(format!("{}_lsp_stdout.{}", timestamp, suffix));
-    let stderr_log_path = log_dir.join(format!("{}_lsp_stderr.log", timestamp));
+    let stdin_log_path = log_dir.join(format!("{}_stdin.{}", timestamp, suffix));
+    let stdout_log_path = log_dir.join(format!("{}_stdout.{}", timestamp, suffix));
+    let stderr_log_path = log_dir.join(format!("{}_stderr.log", timestamp));
 
     eprintln!("LSP Proxy starting...");
     eprintln!("LSP Server: {} {:?}", lsp_server, server_args);
