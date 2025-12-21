@@ -3,6 +3,8 @@ use chrono::Local;
 use std::env;
 use std::path::PathBuf;
 use std::process::Stdio;
+use std::thread;
+use std::time::Duration;
 use tokio::fs::OpenOptions;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
@@ -42,13 +44,18 @@ fn format_lsp_message(json: &str) -> String {
 
 /// Prints a minimal LSP session (initialize + shutdown) to stdout
 fn print_minimal_session() {
+    // Get current working directory and convert to file URI
+    let root_uri = env::current_dir()
+        .ok()
+        .and_then(|path| path.to_str().map(|s| format!("file://{}", s)));
+
     let initialize = serde_json::json!({
         "jsonrpc": "2.0",
         "id": 1,
         "method": "initialize",
         "params": {
             "processId": null,
-            "rootUri": null,
+            "rootUri": root_uri,
             "capabilities": {}
         }
     });
@@ -64,6 +71,10 @@ fn print_minimal_session() {
     let shutdown_str = serde_json::to_string(&shutdown).unwrap();
 
     print!("{}", format_lsp_message(&initialize_str));
+
+    // Sleep for 3 seconds before sending shutdown
+    thread::sleep(Duration::from_secs(3));
+
     print!("{}", format_lsp_message(&shutdown_str));
 }
 
@@ -169,11 +180,11 @@ async fn main() -> Result<()> {
         .context("Failed to create log directory")?;
 
     // Create log file paths with timestamp
-    let timestamp = Local::now().format("%Y%m%d_%H%M%S");
+    let timestamp = Local::now().format("%Y_%m_%d_T_%H_%M_%S");
     let suffix = if json_lines { "jsonl" } else { "log" };
-    let stdin_log_path = log_dir.join(format!("lsp_stdin_{}.{}", timestamp, suffix));
-    let stdout_log_path = log_dir.join(format!("lsp_stdout_{}.{}", timestamp, suffix));
-    let stderr_log_path = log_dir.join(format!("lsp_stderr_{}.log", timestamp));
+    let stdin_log_path = log_dir.join(format!("{}_lsp_stdin.{}", timestamp, suffix));
+    let stdout_log_path = log_dir.join(format!("{}_lsp_stdout.{}", timestamp, suffix));
+    let stderr_log_path = log_dir.join(format!("{}_lsp_stderr.log", timestamp));
 
     eprintln!("LSP Proxy starting...");
     eprintln!("LSP Server: {} {:?}", lsp_server, server_args);
