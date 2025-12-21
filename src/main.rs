@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use chrono::Local;
+use clap::{Parser, Subcommand};
 use std::env;
 use std::path::PathBuf;
 use std::process::Stdio;
@@ -10,31 +11,29 @@ use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-const NAME: &str = env!("CARGO_PKG_NAME");
 
-fn print_help() {
-    println!("{} {}", NAME, VERSION);
-    println!();
-    println!("LSP Proxy - Logs and proxies LSP server communication");
-    println!();
-    println!("USAGE:");
-    println!("    {} [OPTIONS] [-- [LSP_ARGS]...]", NAME);
-    println!();
-    println!("ENVIRONMENT VARIABLES:");
-    println!("    LSP_SERVER       Path to the LSP server executable (required)");
-    println!("    LSP_LOG_DIR      Directory to write log files (defaults to /tmp/lsp-proxy)");
-    println!("    LSP_JSON_LINES   Set to '1' or 'true' for JSON lines logging mode");
-    println!();
-    println!("OPTIONS:");
-    println!("    --help              Print help information");
-    println!("    --version           Print version information");
-    println!("    --minimal-session   Send initialize and shutdown requests to stdout");
-    println!();
-    println!("All other arguments are passed directly to the LSP server.");
+/// lsp-fiddle provides helper tools for testing and debugging LSP
+/// servers.
+#[derive(Parser)]
+#[command(version = VERSION)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
 }
 
-fn print_version() {
-    println!("{} {}", NAME, VERSION);
+#[derive(Subcommand)]
+enum Commands {
+    /// Proxy an LSP server and log all communication
+    Proxy {
+        /// Path to the LSP server executable
+        lsp_server: String,
+
+        /// Arguments to pass to the LSP server
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        lsp_args: Vec<String>,
+    },
+    /// Send initialize and shutdown requests to stdout
+    Minimal,
 }
 
 /// Formats a JSON message as an LSP message with Content-Length header
@@ -136,43 +135,13 @@ impl LspMessageParser {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    // Collect command-line arguments
-    let args: Vec<String> = env::args().collect();
-
-    // Check for --help, --version, or --minimal-session
-    if args.len() > 1 {
-        match args[1].as_str() {
-            "--help" => {
-                print_help();
-                std::process::exit(0);
-            }
-            "--version" => {
-                print_version();
-                std::process::exit(0);
-            }
-            "--minimal-session" => {
-                print_minimal_session();
-                std::process::exit(0);
-            }
-            _ => {}
-        }
-    }
-
-    // Get configuration from environment variables
-    let lsp_server =
-        env::var("LSP_SERVER").context("LSP_SERVER environment variable must be set")?;
-
+async fn run_proxy(lsp_server: String, server_args: Vec<String>) -> Result<()> {
     let log_dir = env::var("LSP_LOG_DIR").unwrap_or_else(|_| "/tmp/lsp-proxy".to_string());
     let log_dir = PathBuf::from(log_dir);
 
     let json_lines = env::var("LSP_JSON_LINES")
         .map(|v| v == "1" || v.to_lowercase() == "true")
         .unwrap_or(false);
-
-    // All arguments (except the program name) are passed to the LSP server
-    let server_args: Vec<String> = args.into_iter().skip(1).collect();
 
     // Create log directory if it doesn't exist
     tokio::fs::create_dir_all(&log_dir)
@@ -424,6 +393,25 @@ async fn main() -> Result<()> {
                     std::process::exit(1);
                 }
             }
+        }
+    }
+
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let cli = Cli::parse();
+
+    match cli.command {
+        Commands::Proxy {
+            lsp_server,
+            lsp_args,
+        } => {
+            run_proxy(lsp_server, lsp_args).await?;
+        }
+        Commands::Minimal => {
+            print_minimal_session();
         }
     }
 
