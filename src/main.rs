@@ -180,7 +180,7 @@ async fn main() -> Result<()> {
         .context("Failed to create log directory")?;
 
     // Create log file paths with timestamp
-    let timestamp = Local::now().format("%Y%m%d_%H_%M_%S");
+    let timestamp = Local::now().format("%Y_%m_%d_T_%H_%M_%S");
     let suffix = if json_lines { "jsonl" } else { "log" };
     let stdin_log_path = log_dir.join(format!("{}_lsp_stdin.{}", timestamp, suffix));
     let stdout_log_path = log_dir.join(format!("{}_lsp_stdout.{}", timestamp, suffix));
