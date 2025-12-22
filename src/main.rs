@@ -136,7 +136,7 @@ impl LspMessageParser {
 }
 
 async fn run_proxy(lsp_server: String, server_args: Vec<String>) -> Result<()> {
-    let log_dir = env::var("LSP_LOG_DIR").unwrap_or_else(|_| "/tmp/lsp-proxy".to_string());
+    let log_dir = env::var("LSP_LOG_DIR").unwrap_or_else(|_| "/tmp/lsp-fiddle".to_string());
     let log_dir = PathBuf::from(log_dir);
 
     let json_lines = env::var("LSP_JSON_LINES")
@@ -155,9 +155,7 @@ async fn run_proxy(lsp_server: String, server_args: Vec<String>) -> Result<()> {
     let stdout_log_path = log_dir.join(format!("{}_stdout.{}", timestamp, suffix));
     let stderr_log_path = log_dir.join(format!("{}_stderr.log", timestamp));
 
-    eprintln!("LSP Proxy starting...");
     eprintln!("LSP Server: {} {:?}", lsp_server, server_args);
-    eprintln!("JSON Lines mode: {}", json_lines);
     eprintln!("Logging to:");
     eprintln!("  stdin:  {}", stdin_log_path.display());
     eprintln!("  stdout: {}", stdout_log_path.display());
