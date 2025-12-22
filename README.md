@@ -24,7 +24,7 @@ stdout, suitable for piping directly into an LSP server for testing.
 
 ### Environment Variables
 
-- `LSP_LOG_DIR` - Directory to write log files (default: `/tmp/lsp-proxy`)
+- `LSP_LOG_DIR` - Directory to write log files (default: `/tmp/lsp-fiddle`)
 - `LSP_JSON_LINES` - Set to `1` or `true` for JSON Lines logging mode
 
 ### Examples
